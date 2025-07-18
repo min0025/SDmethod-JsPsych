@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!--jsPsych関連のツールの呼び出し-->
+    <meta charset="utf-8"> <!--これを足すと日本語もできる-->
+    <script src="../jspsych/dist/jspsych.js"></script>
+    <script src="../jsPsych/dist/plugin-html-keyboard-response.js"></script>
+    <script src="../jspsych/dist/plugin-image-keyboard-response.js"></script>
+    <link rel="stylesheet" href="../jspsych/dist/jspsych.css">
+</head>
+<body></body>
+<script>
+    const jsPsych = initJsPsych();
+    const trial = {
+        type: jsPsychImageKeyboardResponse, // 試行のタイプ指定
+        stimulus: 'jspsych-logo.jpg',
+    };
+
+    jsPsych.run([trial]) // 提示順序の指定
+</script>
+</html>

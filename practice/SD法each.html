@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="jp">
+    <head>
+        <meta charset="UTF-8">
+        <script src="../jsPsych/dist/jsPsych.js"></script>
+        <script src="../jspsych/dist/plugin-survey-likert.js"></script>
+        <style>
+            /* ==== 中央揃えのCSS ==== */
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+            }
+            .jspsych-content-wrapper {
+                text-align: center;
+            }
+            .jspsych-survey-likert-statement {
+                text-align: center;
+            }
+            .jspsych-survey-likert-option {
+                display: inline-block; /* 横並び */
+                margin: 0 10px;
+            }
+        </style>
+        <link rel="stylesheet" hrel="../jspsych/dist/jspsych.css"/>
+    </head>
+    <body></body>
+    <script>
+        const jsPsych = initJsPsych({
+            on_finish: () => jsPsych.data.displayData()            
+        });
+
+        // === 刺激テキスト ===
+        const stimuli = [
+            "ぼく", "わたし", "あたし", "おれ"
+        ]
+
+        // === 形容詞対 ===
+        const adjectives = [
+            { left: "明るい", right: "暗い" },
+            { left: "楽しい", right: "退屈な" },
+            { left: "速い", right: "遅い" }
+        ]
+
+        const likert_scale = ["1", "2", "3", "4", "5", "6", "7"];
+
+        // === 刺激 × 形容詞ペアで1ページずつ ===
+        const trials = [];
+
+        stimuli.forEach(stim => {
+            adjectives.forEach(pair => {
+                trials.push({
+                    type: window.jsPsychSurveyLikert,
+                    preamble: `<p style="font-size: 24px;">${stim}</p>
+                               <p>以下の尺度で評価してください。</p>`,
+                    questions: [
+                        {
+                            prompt: `<b>${pair.left} - ${pair.right}</b>`,
+                            labels: likert_scale,
+                            required: true
+                        }
+                    ],
+                    data: {
+                        stimulus: stim,
+                        adjective_left: pair.left,
+                        adjective_right: pair.right
+                    }
+                }) ;
+            });
+        });
+
+        jsPsych.run(trials);
+    </script>
+</html>
