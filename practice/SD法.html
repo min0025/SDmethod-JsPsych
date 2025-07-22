@@ -1,104 +1,164 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <title>SD法 テキスト刺激版</title>
-    <script src="../jspsych/dist/jspsych.js"></script>
-    <script src="../jspsych/dist/plugin-html-button-response.js"></script>
-    <script src="../jspsych/dist/plugin-survey-likert.js"></script>
-    <link rel="stylesheet" href="../jspsych/dist/jspsych.css" />
-    <style>
-      .stimulus-box {
-        border: 2px solid #ccc; /* 枠線 */
-        padding: 20px;           /* 内側の余白 */
-        margin-bottom: 30px;     /* 下側の余白（評価尺度との距離） */
-        border-radius: 8px;      /* 角を丸くする */
-        background-color: #f9f9f9; /* 薄い背景色 */
-        display: inline-block;   /* 中身に合わせてボックスの幅を調整 */
-      }
-      .stimulus-box p {
-        margin: 0; /* pタグのデフォルト余白をリセット */
-      }
-    </style>
-  </head>
-  <body></body>
-  <script>
-    const jsPsych = initJsPsych({
-      on_finish: function() {
-        jsPsych.data.displayData();
-      },
-    }); // <-- 波括弧を忘れない！ 括弧の始まりにも！
+<head>
+  <meta charset="UTF-8" />
+  <title>SD法 テキスト刺激版</title>
+  <script src="../jspsych/dist/jspsych.js"></script>
+  <script src="../jspsych/dist/plugin-html-button-response.js"></script>
+  <script src="../jspsych/dist/plugin-survey-likert.js"></script>
+  <script src="../jspsych/dist/plugin-survey-html-form.js"></script>
+  <link rel="stylesheet" href="../jspsych/dist/jspsych.css" />
+  <style>
+    .stimulus-box {
+      border: 2px solid #ccc;
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+      display: inline-block;
+    }
+    .stimulus-box p {
+      margin: 0;
+    }
+    .jspsych-survey-likert-opt-label {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 25px;
+      gap: 6px;
+    }
+    .jspsych-survey-likert-opt-label input[type="radio"] {
+      margin-right: 50px;
+      transform: scale(1.5);
+    }
+    .jspsych-survey-likert-statement {
+      margin-bottom: 30px !important;
+    }
+    .jspsych-survey-likert-opts {
+      margin-bottom: 90px !important;
+    }
+    #jspsych-survey-likert-next {
+      display: block;
+      margin: 90px auto 90px;
+    }
+    #jspsych-survey-likert-preamble {
+      margin-top: 120px;
+      margin-bottom: 50px;
+    }
+  </style>
+</head>
+<body></body>
 
-    const intro = {
-      type: window.jsPsychHtmlButtonResponse,
-      stimulus:
-      `<h1>主観評価実験</h1>
-      <p>この調査では, アニメの様々な1人称のテキストを見て各設問に評価してもらいます</p>
-      <p>各質問に1から7の段階でお答えください</p>`,
-      choices: ['開始する']
-    };
+<script>
+  const jsPsych = initJsPsych({
+    on_finish: function() {
+      // === データ取得 ===
+      const sd_trials = jsPsych.data.get().filter({ trial_type: 'survey-likert' });
+      const rows = [];
 
-    const stimuli = [
-      "ぼく", "わたし", "あたし", "おれ"
-    ]
+      sd_trials.values().forEach(trial => {
+        const stim = trial.stim || '';  // ここは data から安全に取る
+        const res = trial.response;
+        const row = [stim];
+        adjectives.forEach((pair, idx) => {
+          const val = res[`Q${idx}`];
+          row.push(val);
+        });
+        rows.push(row);
+      });
 
-    // === SD形容詞対 ===
-    const adjectives = [
-      { left: "明るい", right: "暗い" },
-      { left: "楽しい", right: "退屈な" },
-      { left: "速い", right: "遅い" },
-    ];
-    
-    // リッカート尺度
-    const likert_scale = [
-      "1", "2", "3", "4", "5", "6", "7"
-    ];
-    
-    // === 刺激ごとに trial を作る ===
-    const trials = stimuli.map(stim => {
-      const questions = adjectives.map(pair => ({
-        prompt: `<b style="font-size: 24px">${pair.left} - ${pair.right}</b>
-                 <br></br>`,
-        labels: likert_scale,
-        required: true
+      const demo = jsPsych.data.get().filter({ trial_type: 'survey-html-form' }).values()[0];
+      const gender = demo?.response?.gender || '';
+      const age = demo?.response?.age || '';
+
+      let csv = ['刺激,' + adjectives.map(pair => `${pair.left}-${pair.right}`).join(',') + ',性別,年齢'].join('\n');
+      rows.forEach(r => {
+        csv += '\n' + r.join(',') + `,${gender},${age}`;
+      });
+      
+      // BOMをつける
+      const BOM = '\uFEFF'
+      const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[:.]/g, '-');
+      a.href = url;
+      a.download = `data_${timestamp}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  });
+
+  const intro = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `
+      <h1>主観評価実験</h1>
+      <p>この調査では、アニメの様々な1人称のテキストを見て各設問に評価してもらいます</p>
+      <p>各質問に1から7の段階でお答えください</p>
+    `,
+    choices: ['開始する']
+  };
+
+  const stimuli = ["ぼく", "おれ"];
+
+  const adjectives = [
+    { left: "男性的", right: "女性的" },
+    { left: "幼い感じ", right: "老けた感じ" },
+    { left: "活発な", right: "弱々しい" },
+    { left: "親切な", right: "意地悪な" },
+    { left: "暖かい", right: "冷たい" },
+    { left: "強そう", right: "弱そう" },
+    { left: "偉そうな", right: "控えめな" },
+  ];
+
+  const likert_scale = ["3", "2", "1", "0", "-1", "-2", "-3"];
+
+  const trials = stimuli.map(stim => {
+    const questions = adjectives.map((pair) => ({
+      prompt: `<b style="font-size: 24px">${pair.left} - ${pair.right}</b><br>`,
+      labels: likert_scale,
+      required: true
     }));
 
     return {
-      type: window.jsPsychSurveyLikert,
-      scale_width: 600,
+      type: jsPsychSurveyLikert,
+      scale_width: 800,
+      randomize_question_order: true,
       preamble: `<div class="stimulus-box">
                    <p style="font-size: 50px;">${stim}</p>
-                 </div>
-                 <br></br>
-                 <!-- <p>以下の尺度でこの文章を評価してください。</p> -->`,
-      questions: questions           
+                 </div>`,
+      questions: questions,
+      data: { stim: stim }  // ← ここで安全に刺激情報を保存
     };
   });
 
-  /*
-    const sd_trials = {
-      type: window.jsPsychSurveyLikert,
-      preamble: "<p>以下の各尺度について、最も近い段階を選んでください。</p>",
-      questions: questions
-    };
-    */
+  const demographics = {
+    type: jsPsychSurveyHtmlForm,
+    preamble: "<h2>アンケート</h2><p>最後にご自身の以下項目にご回答をお願いします。</p>",
+    html: `
+      <p>
+        性別:
+        <label><input name="gender" type="radio" value="male" required> 男性</label>
+        <label><input name="gender" type="radio" value="female"> 女性</label>
+        <label><input name="gender" type="radio" value="Other"> その他</label>
+      </p>
+      <p>
+        年齢:
+        <input name="age" type="number" min="0" max="120" required>
+      </p>
+    `,
+    button_label: "送信する"
+  };
 
-  /*
-    const sd_trials = adjectives.map(pair => ({
-      type: jsPsychSurveyLikert,
-      stimulus: `<p>以下の尺度で対象を評価してください</p>
-                 <p style="font-size: 24px;">${pair.left} - ${pair.right}</p>`,
-      labels: [pair.left, pair.right],
-      min: 1,
-      max: 7,
-      start: 4,
-      step: 1,
-      require_movement: true
-    }));
-    */
+  const thanks = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `
+      <h2>ご協力ありがとうございました。</h2>
+      <p>下のボタンを押すとページが閉じます。</p>`,
+    choices: ["終了する"]
+  };
 
-    const timeline = [intro, ...trials];
-
-    jsPsych.run(timeline);
-  </script>
+  jsPsych.run([intro, ...trials, demographics, thanks]);
+</script>
 </html>
